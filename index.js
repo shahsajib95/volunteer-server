@@ -5,67 +5,102 @@ const MongoClient = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectId;
 require('dotenv').config()
 
-const app =  express();
+const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 bodyParser.urlencoded({ extended: false })
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lirp7.mongodb.net/activitydb?retryWrites=true&w=majority`
-const port = 5423;
 
+const admin = require("firebase-admin");
+
+const serviceAccount = require("./travel-guru-project-20-firebase-adminsdk-aqipk-33cec489a9.json");
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://travel-guru-project-20.firebaseio.com"
+});
+
+
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lirp7.mongodb.net/activitydb?retryWrites=true&w=majority`;
 
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 client.connect(err => {
-  const activity = client.db("activitydb").collection("allactivity");
-//   perform actions on the collection object
-    app.get('/allactivity', (req, res)=>{
-        activity.find({}).limit(20)
-        .toArray((err, documents)=>{
-            res.send(documents)
-        })
+    const activity = client.db("activitydb").collection("allactivity");
+    //   perform actions on the collection object
+    app.get('/allactivity', async (req, res) => {
+        activity.find({})
+            .toArray((err, documents) => {
+                res.send(documents)
+            })
     })
-   app.get('/task', (req, res)=>{
-       const filter = req.query.filter;
-       console.log(filter);
-       activity.find({pic: {$regex: filter}})
-       .toArray((err, documents)=>{
-           res.status(200).send(documents)
-       })
-   })
+
+    // app.post('/addevent', async  (req, res, next)=>{
+    //     // activity.insertOne(req.body)
+    // })
+
+    app.get('/task', async (req, res) => {
+        const filter = req.query.filter;
+        console.log(filter);
+        activity.find({ pic: { $regex: filter } })
+            .toArray((err, documents) => {
+                res.status(200).send(documents)
+            })
+    })
 });
 
 client.connect(err => {
     const activity = client.db("activitydb").collection("newactivity");
-  //   perform actions on the collection object
-      app.post('/newactivity', (req, res)=>{
-          activity.insertOne(req.body)
-      })
-      app.get('/activitylist', (req, res)=>{
-          activity.find({})
-          .toArray((err, documents)=>{
-              res.send(documents)
-          })
-      })
-      app.get('/myactivitylist', (req,res)=>{
-        activity.find({email: req.query.email})
-        .toArray((err, documents)=>{
-            res.send(documents)
-        })
-      })
+    //   perform actions on the collection object
+    app.post('/newactivity', async (req, res) => {
+        activity.insertOne(req.body)
+        res.redirect('my-activity')
+    })
+    app.get('/activitylist', async (req, res) => {
+        activity.find({})
+            .toArray((err, documents) => {
+                res.send(documents)
+            })
+    })
+    app.get('/myactivitylist', async (req, res) => {
+        const bearer = req.headers.authorization;
+        if (bearer && bearer.startsWith('Bearer ')) {
+            const idToken = bearer.split(' ')[1]
+            admin.auth().verifyIdToken(idToken)
+                .then(function (decodedToken) {
+                    let tokenEmail = decodedToken.email;
+                    if (tokenEmail === req.query.email) {
+                        activity.find({ email: req.query.email })
+                            .toArray((err, documents) => {
+                                res.send(documents)
+                            })
+                    }
+                    else{
+                        res.status(401).send('Un Authorized Access')
+                    }
+                }).catch(function (error) {
+                    // Handle error
+                });
+        }
+        else{
+            res.status(401).send('Un Authorized Access')
+        }
 
-      app.delete('/deleteactivity/:id', (req, res)=>{
-          activity.deleteOne({_id: ObjectId(req.params.id)})
-          .then(result=>{
-              console.log(result)
-          })
-      })
-      
-  });
+
+    })
+
+    app.delete('/deleteactivity/:id', async (req, res) => {
+        activity.deleteOne({ _id: ObjectId(req.params.id) })
+            .then(result => {
+                console.log(result)
+            })
+    })
+
+});
 
 
-app.get('/', (req,res)=>{
+app.get('/', (req, res) => {
     res.send('port openned')
 })
 
-app.listen(port)
+app.listen(5423)
