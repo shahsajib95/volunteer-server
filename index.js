@@ -91,9 +91,9 @@ client.connect(err => {
 
     app.delete('/deleteactivity/:id', async (req, res) => {
         activity.deleteOne({ _id: ObjectId(req.params.id) })
-            .then(result => {
-                console.log(result)
-            })
+          .then(result=>{
+              res.send(result.deletedCount > 0)
+          })
     })
 
 });
