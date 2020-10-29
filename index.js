@@ -10,14 +10,13 @@ app.use(bodyParser.json());
 app.use(cors());
 bodyParser.urlencoded({ extended: false })
 
-
 const admin = require("firebase-admin");
 
-const serviceAccount = require("./travel-guru-project-20-firebase-adminsdk-aqipk-33cec489a9.json");
+const serviceAccount = require("./volunteer-network-2020-26087-firebase-adminsdk-jthjc-4523479821.json");
 
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://travel-guru-project-20.firebaseio.com"
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://volunteer-network-2020-26087.firebaseio.com"
 });
 
 
